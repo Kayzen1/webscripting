@@ -10,7 +10,7 @@ import csv
 class HealthgradesSpider(scrapy.Spider):
     name = 'doctor'
     allowed_domains = ['www.healthgrades.com']
-    start_urls = ['https://www.healthgrades.com/usearch?what=Dentistry&pageNum={}&sort.provider=bestmatch'.format(i) for i in range(1, 59)]
+    start_urls = ['https://www.healthgrades.com/usearch?what=Family%20Medicine&distances=National&pageNum={}&sort.provider=bestmatch'.format(i) for i in range(1, 59)]
 
     def __init__(self):
         super().__init__()
