@@ -7,10 +7,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import csv
 
+
 class HealthgradesSpider(scrapy.Spider):
     name = 'doctor'
     allowed_domains = ['www.healthgrades.com']
-    start_urls = ['https://www.healthgrades.com/usearch?what=Family%20Medicine&distances=National&pageNum={}&sort.provider=bestmatch'.format(i) for i in range(1, 59)]
+    start_urls = [
+        'https://www.healthgrades.com/usearch?what=Family%20Medicine&distances=National&practicing_specialties=ps328&pageNum={}&sort.provider=bestmatch'.format(
+            i) for i in range(1, 20)]
 
     def __init__(self):
         super().__init__()
@@ -19,10 +22,17 @@ class HealthgradesSpider(scrapy.Spider):
         options.add_argument('--disable-gpu')
         self.driver = webdriver.Chrome(options=options)
 
+    # def restart(self):
+    #     self.driver.quit()
+    #     options = Options()
+    #     options.add_argument('--headless')
+    #     options.add_argument('--disable-gpu')
+    #     self.driver = webdriver.Chrome(options=options)
+
     def parse(self, response):
         self.driver.get(response.url)
         try:
-            element = WebDriverWait(self.driver, 10).until(
+            WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, '.card-name a'))
             )
             sel = Selector(text=self.driver.page_source)
@@ -30,6 +40,9 @@ class HealthgradesSpider(scrapy.Spider):
             for provider_link in provider_links:
                 provider_url = response.urljoin(provider_link)
                 yield scrapy.Request(url=provider_url, callback=self.parse_provider_page)
+            # # Restart the driver after scraping 10 pages
+            # if response.meta['index'] % 10 == 0:
+            #     self.restart()
         finally:
             self.driver.quit()
 
@@ -45,13 +58,21 @@ class HealthgradesSpider(scrapy.Spider):
 
         # comments = sel.css('.comments__commentText::text').getall()
         # comments = ' '.join([comment.strip() for comment in comments])
-        # speciality = sel.css('.v2-sp-2::text').get()
+
         yield {
             'Doctor_Name': doctor_name,
             'Gender': gender,
             'Speciality': speciality
             # 'Comments': comments
         }
+        print("Closed method called with argument:aaaaa")
+
+    # def closed(self, reason):
+    #     print("Closed method called with argument:", self)
+    #     spider_closed = getattr(self, 'spider_closed', None)
+    #     if callable(spider_closed):
+    #         spider_closed()
+    #     self.driver.quit()
 
     def closed(self, reason):
         spider_closed = getattr(self, 'spider_closed', None)
@@ -70,7 +91,6 @@ class HealthgradesSpider(scrapy.Spider):
                     if item is not None:
                         writer.writerows(item)
 
-
     def export_csv(self, index):
         with open('output.csv', mode='r') as file:
             reader = csv.reader(file)
@@ -78,4 +98,3 @@ class HealthgradesSpider(scrapy.Spider):
                 if row_num == index:
                     return row
         return None
-
